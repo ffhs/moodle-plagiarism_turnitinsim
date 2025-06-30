@@ -75,18 +75,21 @@ class backup_plagiarism_turnitinsim_plugin extends backup_plagiarism_plugin {
 
             // Get submission details
             $submissiondetails = $DB->get_records_sql(
-                'SELECT PTS.userid, PTS.turnitinid, PTS.status, PTS.identifier, PTS.itemid, PTS.type,
+                'SELECT PTS.id, PTS.userid, PTS.turnitinid, PTS.status, PTS.identifier, PTS.itemid, PTS.type,
                 PTS.submittedtime, PTS.togenerate, PTS.generationtime, PTS.overallscore, PTS.requestedtime,
                 PTS.errormessage
                 FROM {plagiarism_turnitinsim_sub} PTS
                 WHERE PTS.cm = ? ',
-                array(backup::VAR_PARENTID)
+                [$this->task->get_moduleid()]
             );
 
             // Use file API to get content hash
             $fs = get_file_storage();
-            $file = $fs->get_file_by_hash($submissiondetails->identifier);
-            $submissiondetails['contenthash'] = $file->contenthash;
+            foreach ($submissiondetails as $submissiondetail) {
+                if ($file = $fs->get_file_by_hash($submissiondetail->identifier)) {
+                    $submissiondetail->contenthash = $file->get_contenthash();
+                }
+            }
 
             $submission->set_source_array($submissiondetails);
 
